@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mapa Guía Local Dolores</title>
+  <title>Mapa de Comercios Adheridos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
     #map { height: 90vh; width: 100%; }
@@ -24,10 +24,25 @@
       maxZoom: 18,
     }).addTo(map);
 
-    // Marcador base
+    // Marcador del centro de Dolores
     L.marker([-36.313, -57.679]).addTo(map)
-      .bindPopup('Centro de Dolores')
-      .openPopup();
+      .bindPopup('Centro de Dolores');
+
+    // Ícono personalizado para Fuego Libre
+    const iconoFuegoLibre = L.icon({
+      iconUrl: 'https://image.jimcdn.com/app/cms/image/transf/none/path/sce186cc4fc44f014/image/if031e407ad80985e/version/1747601196/image.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    });
+
+    // Marcador de Fuego Libre
+    L.marker([-36.3092949, -57.6521839], { icon: iconoFuegoLibre }).addTo(map)
+      .bindPopup(`
+        <strong>Fuego Libre</strong><br>
+        <a href="https://www.google.com/maps/place/Fuego+Libre/@-36.3092949,-57.6521839,537m/data=!3m1!1e3!4m14!1m7!3m6!1s0x95999f7e3931d943:0x14d2cc16e3a01bc7!2sFuego+Libre!8m2!3d-36.3092949!4d-57.6521839!16s%2Fg%2F11ts45pfmh!3m5!1s0x95999f7e3931d943:0x14d2cc16e3a01bc7!8m2!3d-36.3092949!4d-57.6521839!16s%2Fg%2F11ts45pfmh?entry=ttu" 
+           target="_blank">Cómo llegar</a>
+      `);
   </script>
 </body>
 </html>
