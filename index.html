@@ -18,17 +18,28 @@
   </style>
 </head>
 <body>
-  <h1>Comercios Adheridos</h1>
+  <h1>Mapa Guía Local Dolores</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([-36.313, -57.679], 14); // Centro Dolores
+    const map = L.map('map').setView([-36.313, -57.679], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 18,
     }).addTo(map);
+
+    // Íconos por categoría
+    const iconosCategoria = {
+      "indumentaria": L.icon({
+        iconUrl: "https://image.jimcdn.com/app/cms/image/transf/none/path/sce186cc4fc44f014/image/if031e407ad80985e/version/1747601196/image.png",
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40]
+      })
+      // Podés seguir agregando más categorías acá...
+    };
 
     // Cargar datos desde Google Sheets (Apps Script)
     fetch('https://script.google.com/macros/s/AKfycby3evFz7kDQXQhf0qy_cbA5D4BiVl46cH-CC4JY3YVYV3X3OzYdDooIJV6_51waAR-W6A/exec')
@@ -45,7 +56,9 @@
               ${item.maps ? `<a href="${item.maps}" target="_blank">Ver en Google Maps</a><br>` : ''}
               ${item.logo ? `<img src="${item.logo}" alt="Logo" class="popup-logo">` : ''}
             `;
-            L.marker([lat / 1e7, lng / 1e7])
+            const icono = iconosCategoria[item.categoria?.toLowerCase()] || null;
+
+            L.marker([lat / 1e7, lng / 1e7], icono ? { icon: icono } : undefined)
               .addTo(map)
               .bindPopup(popupContent);
           }
