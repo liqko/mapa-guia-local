@@ -9,6 +9,12 @@
     #map { height: 90vh; width: 100%; }
     body { margin: 0; font-family: sans-serif; }
     h1 { text-align: center; padding: 10px; background-color: #f4f4f4; margin: 0; }
+    .popup-logo {
+      width: 100px;
+      height: auto;
+      display: block;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
@@ -29,10 +35,19 @@
       .then(response => response.json())
       .then(data => {
         data.forEach(item => {
-          if (item.Latitud && item.Longitud) {
-            L.marker([parseFloat(item.Latitud), parseFloat(item.Longitud)])
+          const lat = parseFloat(item.lat || item.Latitud);
+          const lng = parseFloat(item.lng || item.Longitud);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const popupContent = `
+              <strong>${item.nombre || item.Nombre}</strong><br>
+              ${item.categoria ? `<em>${item.categoria}</em><br>` : ''}
+              ${item.Dirección || ''}<br>
+              ${item.maps ? `<a href="${item.maps}" target="_blank">Ver en Google Maps</a><br>` : ''}
+              ${item.logo ? `<img src="${item.logo}" alt="Logo" class="popup-logo">` : ''}
+            `;
+            L.marker([lat / 1e7, lng / 1e7])
               .addTo(map)
-              .bindPopup(`<strong>${item.Nombre}</strong><br>${item.Dirección || ''}`);
+              .bindPopup(popupContent);
           }
         });
       })
