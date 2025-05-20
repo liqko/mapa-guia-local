@@ -24,16 +24,20 @@
       maxZoom: 18,
     }).addTo(map);
 
-    fetch('https://script.google.com/macros/s/AKfycbzQFX4snyPT8qAaKmSLC_ic4p29LpZjzXrGP55i4yFIqK1wERm0rHCrETnNx3TtKrrfgA/exec')
-      .then(res => res.json())
+    // Cargar datos desde Google Sheets (Apps Script)
+    fetch('https://script.google.com/macros/s/AKfycby3evFz7kDQXQhf0qy_cbA5D4BiVl46cH-CC4JY3YVYV3X3OzYdDooIJV6_51waAR-W6A/exec')
+      .then(response => response.json())
       .then(data => {
-        data.forEach(comercio => {
-          const marker = L.marker([comercio.latitud, comercio.longitud]).addTo(map);
-          marker.bindPopup(`<strong>${comercio.nombre}</strong><br><a href="${comercio.link}" target="_blank">Cómo llegar</a>`);
+        data.forEach(item => {
+          if (item.Latitud && item.Longitud) {
+            L.marker([parseFloat(item.Latitud), parseFloat(item.Longitud)])
+              .addTo(map)
+              .bindPopup(`<strong>${item.Nombre}</strong><br>${item.Dirección || ''}`);
+          }
         });
       })
-      .catch(err => {
-        console.error('Error al cargar los datos:', err);
+      .catch(error => {
+        console.error('Error al cargar datos:', error);
       });
   </script>
 </body>
