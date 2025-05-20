@@ -24,25 +24,17 @@
       maxZoom: 18,
     }).addTo(map);
 
-    // Marcador del centro de Dolores
-    L.marker([-36.313, -57.679]).addTo(map)
-      .bindPopup('Centro de Dolores');
-
-    // Ícono personalizado para Fuego Libre
-    const iconoFuegoLibre = L.icon({
-      iconUrl: 'https://image.jimcdn.com/app/cms/image/transf/none/path/sce186cc4fc44f014/image/if031e407ad80985e/version/1747601196/image.png',
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
-    });
-
-    // Marcador de Fuego Libre
-    L.marker([-36.3092949, -57.6521839], { icon: iconoFuegoLibre }).addTo(map)
-      .bindPopup(`
-        <strong>Fuego Libre</strong><br>
-        <a href="https://www.google.com/maps/place/Fuego+Libre/@-36.3092949,-57.6521839,537m/data=!3m1!1e3!4m14!1m7!3m6!1s0x95999f7e3931d943:0x14d2cc16e3a01bc7!2sFuego+Libre!8m2!3d-36.3092949!4d-57.6521839!16s%2Fg%2F11ts45pfmh!3m5!1s0x95999f7e3931d943:0x14d2cc16e3a01bc7!8m2!3d-36.3092949!4d-57.6521839!16s%2Fg%2F11ts45pfmh?entry=ttu" 
-           target="_blank">Cómo llegar</a>
-      `);
+    fetch('https://script.google.com/macros/s/AKfycbzQFX4snyPT8qAaKmSLC_ic4p29LpZjzXrGP55i4yFIqK1wERm0rHCrETnNx3TtKrrfgA/exec')
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(comercio => {
+          const marker = L.marker([comercio.latitud, comercio.longitud]).addTo(map);
+          marker.bindPopup(`<strong>${comercio.nombre}</strong><br><a href="${comercio.link}" target="_blank">Cómo llegar</a>`);
+        });
+      })
+      .catch(err => {
+        console.error('Error al cargar los datos:', err);
+      });
   </script>
 </body>
 </html>
