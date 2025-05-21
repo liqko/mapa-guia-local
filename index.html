@@ -39,12 +39,11 @@
       maxZoom: 18,
     }).addTo(map);
 
-    // Normaliza texto para usar como nombre de archivo
     function normalizarCategoria(texto) {
       return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     }
 
-    fetch('https://script.google.com/macros/s/AKfycby3evFz7kDQXQhf0qy_cbA5D4BiVl46cH-CC4JY3YVYV3X3OzYdDooIJV6_51waAR-W6A/exec')
+    fetch('https://opensheet.elk.sh/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
       .then(response => response.json())
       .then(data => {
         data.forEach(item => {
