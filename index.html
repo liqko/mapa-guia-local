@@ -15,19 +15,27 @@
       background-color: #f4f4f4;
     }
     .popup-logo {
-      width: 100px;
-      height: auto;
+      width: 32px;
+      height: 32px;
       display: block;
       margin: 5px auto;
+      object-fit: contain;
     }
     .popup-link {
-      background: #007bff;
-      color: white;
+      background: white;
+      color: #007bff;
       padding: 5px 10px;
       border-radius: 4px;
       text-decoration: none;
       display: inline-block;
       margin-top: 5px;
+      border: 1px solid #007bff;
+      font-weight: bold;
+    }
+    .popup-categoria {
+      font-size: 0.9em;
+      color: #555;
+      font-style: italic;
     }
   </style>
 </head>
@@ -66,6 +74,7 @@
 
             const popupHtml = `
               <strong>${item.nombre}</strong><br/>
+              <div class="popup-categoria">${item.categoria || ''}</div>
               ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
               ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
             `;
