@@ -30,15 +30,6 @@
       margin-top: 0;
     }
 
-    .categoria {
-      margin-top: 15px;
-    }
-
-    .categoria-title {
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
     .comercio-item {
       cursor: pointer;
       padding: 5px;
@@ -119,10 +110,17 @@
     const categorias = {};
     let todosLosDatos = [];
 
-    function renderizarLista(filtrados) {
-      const contenedor = document.getElementById("lista-comercios");
-      contenedor.innerHTML = '';
+    function limpiarMarcadores() {
+      markers.forEach(obj => map.removeLayer(obj.marker));
+    }
 
+    function renderizar(filtrados) {
+      limpiarMarcadores();
+      document.getElementById("lista-comercios").innerHTML = '';
+
+      if (filtrados.length === 0) return;
+
+      const contenedor = document.getElementById("lista-comercios");
       const datosPorCategoria = {};
 
       filtrados.forEach(item => {
@@ -133,41 +131,37 @@
       const ordenCategorias = Object.keys(datosPorCategoria).sort();
 
       ordenCategorias.forEach(cat => {
-        const catDiv = document.createElement("div");
-        catDiv.className = "categoria";
-
         const titulo = document.createElement("div");
-        titulo.className = "categoria-title";
+        titulo.style.fontWeight = "bold";
+        titulo.style.marginTop = "10px";
         titulo.textContent = cat;
-        catDiv.appendChild(titulo);
+        contenedor.appendChild(titulo);
 
         datosPorCategoria[cat].forEach(item => {
           const div = document.createElement("div");
           div.className = "comercio-item";
           div.textContent = item.nombre;
           div.onclick = () => {
-            const { marker } = markers[item.index];
+            const { marker } = item;
             map.setView(marker.getLatLng(), 17);
             marker.openPopup();
           };
-          catDiv.appendChild(div);
+          contenedor.appendChild(div);
         });
-
-        contenedor.appendChild(catDiv);
       });
     }
 
     function aplicarFiltros() {
-      const nombreFiltro = document.getElementById("busquedaNombre").value.toLowerCase();
-      const categoriaFiltro = document.getElementById("filtroCategoria").value;
+      const nombre = document.getElementById("busquedaNombre").value.toLowerCase();
+      const categoria = document.getElementById("filtroCategoria").value;
 
       const filtrados = todosLosDatos.filter(item => {
-        const coincideNombre = item.nombre.toLowerCase().includes(nombreFiltro);
-        const coincideCategoria = categoriaFiltro === "" || item.categoria === categoriaFiltro;
+        const coincideNombre = nombre === '' || item.nombre.toLowerCase().includes(nombre);
+        const coincideCategoria = categoria === '' || item.categoria === categoria;
         return coincideNombre && coincideCategoria;
       });
 
-      renderizarLista(filtrados);
+      renderizar(filtrados);
     }
 
     fetch('https://opensheet.vercel.app/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
@@ -197,20 +191,17 @@
             `;
 
             const marker = L.marker([lat, lng], { icon: iconoCategoria })
-              .addTo(map)
               .bindPopup(popupHtml);
-
-            markers.push({ marker, nombre: item.nombre });
 
             todosLosDatos.push({
               nombre: item.nombre,
               categoria,
-              index
+              marker
             });
           }
         });
 
-        // Poblar dropdown de categorías
+        // Poblar categorías
         const select = document.getElementById("filtroCategoria");
         Object.keys(categorias).sort().forEach(cat => {
           const option = document.createElement("option");
@@ -218,8 +209,6 @@
           option.textContent = cat;
           select.appendChild(option);
         });
-
-        renderizarLista(todosLosDatos);
 
         document.getElementById("busquedaNombre").addEventListener("input", aplicarFiltros);
         document.getElementById("filtroCategoria").addEventListener("change", aplicarFiltros);
