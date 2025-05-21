@@ -112,6 +112,7 @@
 
     function limpiarMarcadores() {
       markers.forEach(obj => map.removeLayer(obj.marker));
+      markers.length = 0;
     }
 
     function renderizar(filtrados) {
@@ -142,11 +143,13 @@
           div.className = "comercio-item";
           div.textContent = item.nombre;
           div.onclick = () => {
-            const { marker } = item;
-            map.setView(marker.getLatLng(), 17);
-            marker.openPopup();
+            map.setView(item.marker.getLatLng(), 17);
+            item.marker.openPopup();
           };
           contenedor.appendChild(div);
+
+          item.marker.addTo(map);
+          markers.push({ marker: item.marker });
         });
       });
     }
@@ -167,7 +170,7 @@
     fetch('https://opensheet.vercel.app/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
       .then(response => response.json())
       .then(data => {
-        data.forEach((item, index) => {
+        data.forEach((item) => {
           if (item.lat && item.lng) {
             const lat = parseFloat(item.lat.replace(',', '.'));
             const lng = parseFloat(item.lng.replace(',', '.'));
@@ -201,7 +204,7 @@
           }
         });
 
-        // Poblar categorías
+        // Poblar el combo de categorías
         const select = document.getElementById("filtroCategoria");
         Object.keys(categorias).sort().forEach(cat => {
           const option = document.createElement("option");
