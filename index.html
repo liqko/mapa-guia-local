@@ -41,8 +41,8 @@
     }
 
     .popup-logo {
-      width: 32px;
-      height: 32px;
+      width: 60px;
+      height: auto;
       display: block;
       margin: 5px auto;
       object-fit: contain;
@@ -71,19 +71,13 @@
     }
 
     .filtros input,
-    .filtros select {
-      width: 100%;
-      padding: 5px;
-      margin-top: 5px;
-      margin-bottom: 10px;
-    }
-
+    .filtros select,
     .filtros button {
       width: 100%;
-      padding: 5px;
-      background: #ccc;
-      border: none;
-      cursor: pointer;
+      padding: 6px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      font-size: 1em;
     }
   </style>
 </head>
@@ -112,7 +106,7 @@
     }).addTo(map);
 
     function normalizarCategoria(texto) {
-      return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, '-');
+      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     }
 
     const markers = [];
@@ -120,22 +114,24 @@
     let todosLosDatos = [];
 
     function limpiarMarcadores() {
-      todosLosDatos.forEach(obj => map.removeLayer(obj.marker));
+      markers.forEach(obj => map.removeLayer(obj.marker));
     }
 
-    function renderizar(filtrados) {
+    function renderizar(filtrados, mostrarLista = true) {
       limpiarMarcadores();
-      document.getElementById("lista-comercios").innerHTML = '';
+      const lista = document.getElementById("lista-comercios");
+      lista.innerHTML = '';
 
-      if (filtrados.length === 0) return;
+      filtrados.forEach(item => {
+        item.marker.addTo(map);
+      });
 
-      const contenedor = document.getElementById("lista-comercios");
+      if (!mostrarLista || filtrados.length === 0) return;
+
       const datosPorCategoria = {};
-
       filtrados.forEach(item => {
         if (!datosPorCategoria[item.categoria]) datosPorCategoria[item.categoria] = [];
         datosPorCategoria[item.categoria].push(item);
-        item.marker.addTo(map);
       });
 
       const ordenCategorias = Object.keys(datosPorCategoria).sort();
@@ -145,18 +141,17 @@
         titulo.style.fontWeight = "bold";
         titulo.style.marginTop = "10px";
         titulo.textContent = cat;
-        contenedor.appendChild(titulo);
+        lista.appendChild(titulo);
 
         datosPorCategoria[cat].forEach(item => {
           const div = document.createElement("div");
           div.className = "comercio-item";
           div.textContent = item.nombre;
           div.onclick = () => {
-            const { marker } = item;
-            map.setView(marker.getLatLng(), 17);
-            marker.openPopup();
+            map.setView(item.marker.getLatLng(), 17);
+            item.marker.openPopup();
           };
-          contenedor.appendChild(div);
+          lista.appendChild(div);
         });
       });
     }
@@ -165,37 +160,25 @@
       const nombre = document.getElementById("busquedaNombre").value.toLowerCase();
       const categoria = document.getElementById("filtroCategoria").value;
 
-      const lista = document.getElementById("lista-comercios");
-      lista.innerHTML = "";
-
-      if (nombre === "" && categoria === "") {
-        todosLosDatos.forEach(item => {
-          if (!map.hasLayer(item.marker)) {
-            item.marker.addTo(map);
-          }
-        });
-        return;
-      }
-
       const filtrados = todosLosDatos.filter(item => {
-        const coincideNombre = item.nombre.toLowerCase().includes(nombre);
+        const coincideNombre = nombre === '' || item.nombre.toLowerCase().includes(nombre);
         const coincideCategoria = categoria === '' || item.categoria === categoria;
         return coincideNombre && coincideCategoria;
       });
 
-      renderizar(filtrados);
+      renderizar(filtrados, true);
     }
 
     function limpiarFiltros() {
-      document.getElementById("busquedaNombre").value = "";
-      document.getElementById("filtroCategoria").value = "";
-      aplicarFiltros();
+      document.getElementById("busquedaNombre").value = '';
+      document.getElementById("filtroCategoria").value = '';
+      renderizar(todosLosDatos, false);
     }
 
     fetch('https://opensheet.vercel.app/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
       .then(response => response.json())
       .then(data => {
-        data.forEach((item, index) => {
+        data.forEach(item => {
           if (item.lat && item.lng) {
             const lat = parseFloat(item.lat.replace(',', '.'));
             const lng = parseFloat(item.lng.replace(',', '.'));
@@ -213,23 +196,28 @@
 
             const popupHtml = `
               <strong>${item.nombre}</strong><br/>
-              <div class="popup-categoria">${categoria}</div>
+              <div class="popup-categoria">${categoria}${item.subcategoria ? ' - ' + item.subcategoria : ''}</div>
+              ${item.direccion ? '📍 ' + item.direccion + '<br/>' : ''}
+              ${item.telefono ? '📞 ' + item.telefono + '<br/>' : ''}
+              ${item.whatsapp ? '📱 <a href="https://wa.me/549' + item.whatsapp.replace(/\D/g, '') + '" target="_blank">WhatsApp</a><br/>' : ''}
+              ${item.redsocial ? '🌐 <a href="' + item.redsocial + '" target="_blank">Red social</a><br/>' : ''}
               ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
               ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
             `;
 
-            const marker = L.marker([lat, lng], { icon: iconoCategoria })
-              .bindPopup(popupHtml)
-              .addTo(map);
+            const marker = L.marker([lat, lng], { icon: iconoCategoria }).bindPopup(popupHtml);
 
             todosLosDatos.push({
               nombre: item.nombre,
               categoria,
               marker
             });
+
+            markers.push({ marker });
           }
         });
 
+        // Poblar categorías
         const select = document.getElementById("filtroCategoria");
         Object.keys(categorias).sort().forEach(cat => {
           const option = document.createElement("option");
@@ -237,6 +225,9 @@
           option.textContent = cat;
           select.appendChild(option);
         });
+
+        // Mostrar íconos sin lista al cargar
+        renderizar(todosLosDatos, false);
 
         document.getElementById("busquedaNombre").addEventListener("input", aplicarFiltros);
         document.getElementById("filtroCategoria").addEventListener("change", aplicarFiltros);
