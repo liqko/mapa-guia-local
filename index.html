@@ -3,72 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Comercios Adheridos - Guía Local Dolores</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <title>Comercios Adheridos</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
-    #map {
-      height: 100vh;
-      width: 100%;
-    }
+    #map { height: 90vh; width: 100%; }
+    body { margin: 0; font-family: sans-serif; }
+    h1 { text-align: center; padding: 10px; background-color: #f4f4f4; margin: 0; }
     .popup-logo {
       width: 100px;
       height: auto;
       display: block;
-      margin-bottom: 5px;
+      margin: 5px 0;
+    }
+    .popup-link {
+      display: inline-block;
+      margin-top: 5px;
+      background: #007bff;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
+  <h1>Comercios Adheridos - Guía Local Dolores</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([-36.313, -57.679], 14);
+    const map = L.map('map').setView([-36.313, -57.679], 14); // Centro Dolores
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap',
+      maxZoom: 18,
     }).addTo(map);
 
-    function normalizarCategoria(nombre) {
-      return nombre
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // elimina tildes
-        .replace(/\s+/g, '-')            // espacios por guiones
-        .replace(/[^a-z0-9\-]/g, '');    // solo letras, números y guiones
+    // Normaliza texto para usar como nombre de archivo
+    function normalizarCategoria(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     }
 
-    const url = 'https://opensheet.elk.sh/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWW/ADHERIDOS';
-
-    fetch(url)
+    fetch('https://script.google.com/macros/s/AKfycby3evFz7kDQXQhf0qy_cbA5D4BiVl46cH-CC4JY3YVYV3X3OzYdDooIJV6_51waAR-W6A/exec')
       .then(response => response.json())
       .then(data => {
-        data.forEach(comercio => {
-          if (comercio.lat && comercio.lng) {
-            const lat = parseFloat(comercio.lat / 1e7);
-            const lng = parseFloat(comercio.lng / 1e7);
-            const categoria = normalizarCategoria(comercio.categoria || 'default');
-
+        data.forEach(item => {
+          if (item.lat && item.lng) {
+            const categoriaNormalizada = normalizarCategoria(item.categoria || 'default');
             const iconoCategoria = L.icon({
-              iconUrl: `img/${categoria}.png`,
-              iconSize: [40, 40],
-              iconAnchor: [20, 40],
-              popupAnchor: [0, -40]
+              iconUrl: `img/${categoriaNormalizada}.png`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -32]
             });
 
-            const marker = L.marker([lat, lng], { icon: iconoCategoria }).addTo(map);
-
-            const popupHTML = `
-              <img class="popup-logo" src="logos/${comercio.logo}" alt="Logo">
-              <strong>${comercio.nombre}</strong><br>
-              <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank">¿Cómo llegar?</a>
+            const popupHtml = `
+              <strong>${item.nombre}</strong><br/>
+              ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
+              <a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>
             `;
 
-            marker.bindPopup(popupHTML);
+            L.marker([parseFloat(item.lat), parseFloat(item.lng)], { icon: iconoCategoria })
+              .addTo(map)
+              .bindPopup(popupHtml);
           }
         });
       })
       .catch(error => {
-        console.error('Error al cargar los datos:', error);
+        console.error('Error al cargar datos:', error);
       });
   </script>
 </body>
