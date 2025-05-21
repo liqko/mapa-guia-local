@@ -2,64 +2,83 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa - Guía Local Dolores</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Comercios Adheridos</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
-    #map {
-      height: 100vh;
-      width: 100%;
+    #map { height: 100vh; width: 100%; }
+    body { margin: 0; font-family: sans-serif; }
+    h1 {
+      text-align: center;
+      padding: 10px;
+      margin: 0;
+      background-color: #f4f4f4;
+    }
+    .popup-logo {
+      width: 100px;
+      height: auto;
+      display: block;
+      margin: 5px auto;
+    }
+    .popup-link {
+      background: #007bff;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 5px;
     }
   </style>
 </head>
 <body>
+  <h1>Comercios Adheridos - Guía Local Dolores</h1>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const spreadsheetId = '1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw';
-    const sheetName = 'ADHERIDOS';
-    const apiKey = 'AIzaSyDUmgM3k_4zGEZ_eOPq_PW0r_v0Bo2EJRY';
-    const defaultIcon = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-
-    const map = L.map('map').setView([-36.336, -57.679], 13);
+    const map = L.map('map').setView([-36.313, -57.679], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap',
+      maxZoom: 18,
     }).addTo(map);
 
-    fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`)
-      .then(res => res.json())
+    function normalizarCategoria(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
+    }
+
+    fetch('https://opensheet.vercel.app/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
+      .then(response => response.json())
       .then(data => {
-        const headers = data.values[0];
-        const rows = data.values.slice(1);
+        data.forEach(item => {
+          if (item.lat && item.lng) {
+            const lat = parseFloat(item.lat.replace(',', '.'));
+            const lng = parseFloat(item.lng.replace(',', '.'));
 
-        rows.forEach(row => {
-          const item = {};
-          headers.forEach((header, i) => {
-            item[header.trim()] = row[i] || '';
-          });
+            const categoriaNormalizada = normalizarCategoria(item.categoria || 'default');
+            const iconoCategoria = L.icon({
+              iconUrl: `img/${categoriaNormalizada}.png`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -32]
+            });
 
-          const lat = parseFloat(item.lat.replace(',', '.'));
-          const lng = parseFloat(item.lng.replace(',', '.'));
-          if (isNaN(lat) || isNaN(lng)) return;
+            const popupHtml = `
+              <strong>${item.nombre}</strong><br/>
+              ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
+              ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
+            `;
 
-          const logo = item.logo.startsWith('http') ? item.logo : defaultIcon;
-          const popupContent = `
-            <div style="text-align:center;">
-              <strong>${item.nombre}</strong><br>
-              <img src="${logo}" onerror="this.src='${defaultIcon}'" style="width:80px;height:auto;margin:5px 0;" /><br>
-              <em>${item.categoria || ''}</em><br>
-              <a href="${item.maps}" target="_blank">Ver en Google Maps</a>
-            </div>
-          `;
-
-          L.marker([lat, lng]).addTo(map).bindPopup(popupContent);
+            L.marker([lat, lng], { icon: iconoCategoria })
+              .addTo(map)
+              .bindPopup(popupHtml);
+          }
         });
       })
-      .catch(err => {
-        console.error('Error al cargar datos:', err);
-        alert('No se pudo cargar el mapa. Intente más tarde.');
+      .catch(error => {
+        alert("No se pudo cargar el mapa. Intente más tarde.");
+        console.error('Error al cargar los datos:', error);
       });
   </script>
 </body>
