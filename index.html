@@ -1,48 +1,33 @@
-const map = L.map('map').setView([-36.313, -57.679], 14);
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mapa Guía Local Dolores</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    #map {
+      height: 100%;
+    }
+    .leaflet-popup-content {
+      text-align: center;
+      font-family: sans-serif;
+    }
+    .leaflet-popup-content img {
+      max-width: 100px;
+      display: block;
+      margin: 0 auto 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-
-// Función para "normalizar" texto de categoría y armar nombre de archivo
-function normalizarCategoria(nombre) {
-  return nombre
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // elimina tildes
-    .replace(/\s+/g, '-') // espacios por guiones
-    .replace(/[^a-z0-9\-]/g, ''); // solo letras, números y guiones
-}
-
-fetch('https://opensheet.elk.sh/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
-  .then(response => response.json())
-  .then(data => {
-    data.forEach(comercio => {
-      if (comercio.lat && comercio.lng) {
-        const lat = parseFloat(comercio.lat / 1e7);
-        const lng = parseFloat(comercio.lng / 1e7);
-        const categoria = normalizarCategoria(comercio.categoria || 'default');
-        const iconoCategoria = L.icon({
-          iconUrl: `img/${categoria}.png`,
-          iconSize: [40, 40],
-          iconAnchor: [20, 40],
-          popupAnchor: [0, -40]
-        });
-
-        const marker = L.marker([lat, lng], { icon: iconoCategoria }).addTo(map);
-
-        const popupHTML = `
-          <div style="text-align:center;">
-            <img src="${comercio.logo}" alt="${comercio.nombre}" style="width:100px;height:auto;"><br>
-            <strong>${comercio.nombre}</strong><br>
-            <a href="${comercio.maps}" target="_blank">¿Cómo llegar?</a>
-          </div>
-        `;
-
-        marker.bindPopup(popupHTML);
-      }
-    });
-  })
-  .catch(error => {
-    console.error('Error al cargar los datos:', error);
-  });
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>
