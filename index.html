@@ -71,23 +71,19 @@
     }
 
     .filtros input,
-    .filtros select,
-    .filtros button {
+    .filtros select {
       width: 100%;
-      padding: 6px;
+      padding: 5px;
       margin-top: 5px;
       margin-bottom: 10px;
     }
 
     .filtros button {
-      background-color: #ddd;
+      width: 100%;
+      padding: 5px;
+      background: #ccc;
       border: none;
-      border-radius: 4px;
       cursor: pointer;
-    }
-
-    .filtros button:hover {
-      background-color: #ccc;
     }
   </style>
 </head>
@@ -99,7 +95,7 @@
       <select id="filtroCategoria">
         <option value="">Todas las categorías</option>
       </select>
-      <button id="limpiarFiltros">Limpiar filtros</button>
+      <button onclick="limpiarFiltros()">Limpiar filtros</button>
     </div>
     <div id="lista-comercios"></div>
   </div>
@@ -116,7 +112,7 @@
     }).addTo(map);
 
     function normalizarCategoria(texto) {
-      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
+      return texto.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, '-');
     }
 
     const markers = [];
@@ -124,7 +120,7 @@
     let todosLosDatos = [];
 
     function limpiarMarcadores() {
-      markers.forEach(obj => map.removeLayer(obj.marker));
+      todosLosDatos.forEach(obj => map.removeLayer(obj.marker));
     }
 
     function renderizar(filtrados) {
@@ -139,6 +135,7 @@
       filtrados.forEach(item => {
         if (!datosPorCategoria[item.categoria]) datosPorCategoria[item.categoria] = [];
         datosPorCategoria[item.categoria].push(item);
+        item.marker.addTo(map);
       });
 
       const ordenCategorias = Object.keys(datosPorCategoria).sort();
@@ -160,8 +157,6 @@
             marker.openPopup();
           };
           contenedor.appendChild(div);
-
-          item.marker.addTo(map);  // Solo agrega los marcadores de los resultados filtrados
         });
       });
     }
@@ -170,8 +165,20 @@
       const nombre = document.getElementById("busquedaNombre").value.toLowerCase();
       const categoria = document.getElementById("filtroCategoria").value;
 
+      const lista = document.getElementById("lista-comercios");
+      lista.innerHTML = "";
+
+      if (nombre === "" && categoria === "") {
+        todosLosDatos.forEach(item => {
+          if (!map.hasLayer(item.marker)) {
+            item.marker.addTo(map);
+          }
+        });
+        return;
+      }
+
       const filtrados = todosLosDatos.filter(item => {
-        const coincideNombre = nombre === '' || item.nombre.toLowerCase().includes(nombre);
+        const coincideNombre = item.nombre.toLowerCase().includes(nombre);
         const coincideCategoria = categoria === '' || item.categoria === categoria;
         return coincideNombre && coincideCategoria;
       });
@@ -179,10 +186,16 @@
       renderizar(filtrados);
     }
 
+    function limpiarFiltros() {
+      document.getElementById("busquedaNombre").value = "";
+      document.getElementById("filtroCategoria").value = "";
+      aplicarFiltros();
+    }
+
     fetch('https://opensheet.vercel.app/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
       .then(response => response.json())
       .then(data => {
-        data.forEach(item => {
+        data.forEach((item, index) => {
           if (item.lat && item.lng) {
             const lat = parseFloat(item.lat.replace(',', '.'));
             const lng = parseFloat(item.lng.replace(',', '.'));
@@ -205,7 +218,9 @@
               ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
             `;
 
-            const marker = L.marker([lat, lng], { icon: iconoCategoria }).bindPopup(popupHtml);
+            const marker = L.marker([lat, lng], { icon: iconoCategoria })
+              .bindPopup(popupHtml)
+              .addTo(map);
 
             todosLosDatos.push({
               nombre: item.nombre,
@@ -215,7 +230,6 @@
           }
         });
 
-        // Poblar categorías
         const select = document.getElementById("filtroCategoria");
         Object.keys(categorias).sort().forEach(cat => {
           const option = document.createElement("option");
@@ -226,13 +240,6 @@
 
         document.getElementById("busquedaNombre").addEventListener("input", aplicarFiltros);
         document.getElementById("filtroCategoria").addEventListener("change", aplicarFiltros);
-        document.getElementById("limpiarFiltros").addEventListener("click", () => {
-          document.getElementById("busquedaNombre").value = "";
-          document.getElementById("filtroCategoria").value = "";
-          aplicarFiltros();
-        });
-
-        aplicarFiltros(); // Mostrar todos por defecto
       })
       .catch(error => {
         alert("No se pudo cargar el mapa. Intente más tarde.");
