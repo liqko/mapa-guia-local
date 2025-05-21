@@ -32,17 +32,19 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([-36.313, -57.679], 14); // Centro Dolores
+    const map = L.map('map').setView([-36.313, -57.679], 14); // Centro de Dolores
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 18,
     }).addTo(map);
 
+    // Normaliza texto para usar como nombre de archivo
     function normalizarCategoria(texto) {
       return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     }
 
+    // URL de OpenSheet apuntando a la hoja "ADHERIDOS"
     fetch('https://opensheet.elk.sh/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
       .then(response => response.json())
       .then(data => {
@@ -59,7 +61,7 @@
             const popupHtml = `
               <strong>${item.nombre}</strong><br/>
               ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
-              <a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>
+              ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
             `;
 
             L.marker([parseFloat(item.lat), parseFloat(item.lng)], { icon: iconoCategoria })
