@@ -13,7 +13,16 @@
       width: 100px;
       height: auto;
       display: block;
+      margin: 5px 0;
+    }
+    .popup-link {
+      display: inline-block;
       margin-top: 5px;
+      background: #007bff;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      text-decoration: none;
     }
   </style>
 </head>
@@ -23,48 +32,40 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView([-36.313, -57.679], 14);
+    const map = L.map('map').setView([-36.313, -57.679], 14); // Centro Dolores
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 18,
     }).addTo(map);
 
-    // Ícono personalizado para categoría "indumentaria"
-    const iconoIndumentaria = L.icon({
-      iconUrl: "https://liqko.github.io/mapa-guia-local/img/indumentaria.png", // Ruta pública en GitHub
-      iconSize: [40, 40],
-      iconAnchor: [20, 40],
-      popupAnchor: [0, -40]
-    });
+    // Normaliza texto para usar como nombre de archivo
+    function normalizarCategoria(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
+    }
 
-    // Cargar datos desde Google Sheets
     fetch('https://script.google.com/macros/s/AKfycby3evFz7kDQXQhf0qy_cbA5D4BiVl46cH-CC4JY3YVYV3X3OzYdDooIJV6_51waAR-W6A/exec')
       .then(response => response.json())
       .then(data => {
         data.forEach(item => {
-          const lat = parseFloat(item.lat || item.Latitud);
-          const lng = parseFloat(item.lng || item.Longitud);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            const popupContent = `
-              <strong>${item.nombre || item.Nombre}</strong><br>
-              ${item.categoria ? `<em>${item.categoria}</em><br>` : ''}
-              ${item.Dirección || ''}<br>
-              ${item.maps ? `<a href="${item.maps}" target="_blank">Ver en Google Maps</a><br>` : ''}
-              ${item.logo ? `<img src="${item.logo}" alt="Logo" class="popup-logo">` : ''}
+          if (item.lat && item.lng) {
+            const categoriaNormalizada = normalizarCategoria(item.categoria || 'default');
+            const iconoCategoria = L.icon({
+              iconUrl: `img/${categoriaNormalizada}.png`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -32]
+            });
+
+            const popupHtml = `
+              <strong>${item.nombre}</strong><br/>
+              ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
+              <a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>
             `;
 
-            // Elegir ícono según categoría
-            let icono = null;
-            const categoria = (item.categoria || "").toLowerCase().trim();
-            if (categoria === "indumentaria") {
-              icono = iconoIndumentaria;
-            }
-
-            // Crear marcador
-            L.marker([lat / 1e7, lng / 1e7], icono ? { icon: icono } : undefined)
+            L.marker([parseFloat(item.lat), parseFloat(item.lng)], { icon: iconoCategoria })
               .addTo(map)
-              .bindPopup(popupContent);
+              .bindPopup(popupHtml);
           }
         });
       })
