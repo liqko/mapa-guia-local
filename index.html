@@ -175,14 +175,14 @@
       renderizar(todosLosDatos, false);
     }
 
-    fetch('https://opensheet.vercel.app/1vwzXhaK99qos9PsZo-MLysJ8okR81VZV1EXgFiweUWw/ADHERIDOS')
+    fetch('https://opensheet.elk.sh/170kTZ-ViCPxPli86g-n_XMuMv1S3O0-DbGwNFGYVnjY/ANUNCIANTES')
       .then(response => response.json())
       .then(data => {
         data.forEach(item => {
           if (item.lat && item.lng) {
             const lat = parseFloat(item.lat.replace(',', '.'));
             const lng = parseFloat(item.lng.replace(',', '.'));
-            const categoria = item.categoria || 'Otros';
+            const categoria = item.categoria1 || 'Otros';
             const categoriaNormalizada = normalizarCategoria(categoria);
 
             if (!categorias[categoria]) categorias[categoria] = true;
@@ -200,7 +200,9 @@
               ${item.direccion ? '📍 ' + item.direccion + '<br/>' : ''}
               ${item.telefono ? '📞 ' + item.telefono + '<br/>' : ''}
               ${item.whatsapp ? '📱 <a href="https://wa.me/549' + item.whatsapp.replace(/\D/g, '') + '" target="_blank">WhatsApp</a><br/>' : ''}
-              ${item.redsocial ? '🌐 <a href="' + item.redsocial + '" target="_blank">Red social</a><br/>' : ''}
+              ${item.instagram ? '📸 <a href="' + item.instagram + '" target="_blank">Instagram</a><br/>' : ''}
+              ${item.facebook ? '📘 <a href="' + item.facebook + '" target="_blank">Facebook</a><br/>' : ''}
+              ${item.youtube ? '🎥 <a href="' + item.youtube + '" target="_blank">YouTube</a><br/>' : ''}
               ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
               ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
             `;
