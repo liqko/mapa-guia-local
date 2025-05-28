@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Comercios Adheridos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     body {
       margin: 0;
@@ -67,42 +67,6 @@
       font-style: italic;
     }
 
-    .popup-icon {
-      margin-right: 6px;
-    }
-
-    .popup-icon.whatsapp {
-      color: #25D366;
-    }
-
-    .popup-icon.instagram {
-      color: #C13584;
-    }
-
-    .popup-icon.facebook {
-      color: #1877F2;
-    }
-
-    .popup-icon.youtube {
-      color: #FF0000;
-    }
-
-    .popup-icon.phone {
-      color: #444;
-    }
-
-    .popup-links a {
-      display: inline-block;
-      margin: 3px 0;
-      text-decoration: none;
-      color: #007bff;
-    }
-
-    .popup-links i {
-      width: 20px;
-      text-align: center;
-    }
-
     .filtros {
       margin-bottom: 15px;
     }
@@ -116,13 +80,20 @@
       margin-bottom: 10px;
       font-size: 1em;
     }
+
+    .icono {
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
   <div id="sidebar">
     <h1>Comercios Adheridos</h1>
     <div class="filtros">
-      <input type="text" id="busquedaSubcategoria" placeholder="Buscar por subcategoría...">
+      <input type="text" id="busquedaNombre" placeholder="Buscar por nombre...">
+      <select id="filtroSubcategoria">
+        <option value="">Todas las subcategorías</option>
+      </select>
       <button onclick="limpiarFiltros()">Limpiar filtros</button>
     </div>
     <div id="lista-comercios"></div>
@@ -139,42 +110,74 @@
       maxZoom: 18,
     }).addTo(map);
 
+    function normalizarTexto(texto) {
+      return texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
+    }
+
     const markers = [];
+    const subcategorias = {};
     let todosLosDatos = [];
 
     function limpiarMarcadores() {
       markers.forEach(obj => map.removeLayer(obj.marker));
     }
 
-    function renderizar(filtrados) {
+    function renderizar(filtrados, mostrarLista = true) {
       limpiarMarcadores();
       const lista = document.getElementById("lista-comercios");
       lista.innerHTML = '';
 
       filtrados.forEach(item => {
         item.marker.addTo(map);
-        const div = document.createElement("div");
-        div.className = "comercio-item";
-        div.textContent = item.nombre;
-        div.onclick = () => {
-          map.setView(item.marker.getLatLng(), 17);
-          item.marker.openPopup();
-        };
-        lista.appendChild(div);
+      });
+
+      if (!mostrarLista || filtrados.length === 0) return;
+
+      const datosPorSubcategoria = {};
+      filtrados.forEach(item => {
+        if (!datosPorSubcategoria[item.subcategoria1]) datosPorSubcategoria[item.subcategoria1] = [];
+        datosPorSubcategoria[item.subcategoria1].push(item);
+      });
+
+      const ordenSubcategorias = Object.keys(datosPorSubcategoria).sort();
+
+      ordenSubcategorias.forEach(subcat => {
+        const titulo = document.createElement("div");
+        titulo.style.fontWeight = "bold";
+        titulo.style.marginTop = "10px";
+        titulo.textContent = subcat;
+        lista.appendChild(titulo);
+
+        datosPorSubcategoria[subcat].forEach(item => {
+          const div = document.createElement("div");
+          div.className = "comercio-item";
+          div.textContent = item.nombre;
+          div.onclick = () => {
+            map.setView(item.marker.getLatLng(), 17);
+            item.marker.openPopup();
+          };
+          lista.appendChild(div);
+        });
       });
     }
 
     function aplicarFiltros() {
-      const subcat = document.getElementById("busquedaSubcategoria").value.toLowerCase();
+      const nombre = document.getElementById("busquedaNombre").value.toLowerCase();
+      const subcategoria = document.getElementById("filtroSubcategoria").value;
+
       const filtrados = todosLosDatos.filter(item => {
-        return item.subcategoria1 && item.subcategoria1.toLowerCase().includes(subcat);
+        const coincideNombre = nombre === '' || item.nombre.toLowerCase().includes(nombre);
+        const coincideSubcategoria = subcategoria === '' || item.subcategoria1 === subcategoria;
+        return coincideNombre && coincideSubcategoria;
       });
-      renderizar(filtrados);
+
+      renderizar(filtrados, true);
     }
 
     function limpiarFiltros() {
-      document.getElementById("busquedaSubcategoria").value = '';
-      renderizar(todosLosDatos);
+      document.getElementById("busquedaNombre").value = '';
+      document.getElementById("filtroSubcategoria").value = '';
+      renderizar(todosLosDatos, false);
     }
 
     fetch('https://opensheet.elk.sh/170kTZ-ViCPxPli86g-n_XMuMv1S3O0-DbGwNFGYVnjY/ANUNCIANTES')
@@ -184,26 +187,35 @@
           if (item.lat && item.lng) {
             const lat = parseFloat(item.lat.replace(',', '.'));
             const lng = parseFloat(item.lng.replace(',', '.'));
+            const subcategoria1 = item.subcategoria1 || 'Otros';
+            const subcategoriaNormalizada = normalizarTexto(subcategoria1);
+
+            if (!subcategorias[subcategoria1]) subcategorias[subcategoria1] = true;
+
+            const iconoCategoria = L.icon({
+              iconUrl: `img/${subcategoriaNormalizada}.png`,
+              iconSize: [32, 32],
+              iconAnchor: [16, 32],
+              popupAnchor: [0, -32]
+            });
+
             const popupHtml = `
               <strong>${item.nombre}</strong><br/>
-              <div class="popup-categoria">${item.categoria || ''}${item.subcategoria1 ? ' - ' + item.subcategoria1 : ''}</div>
-              ${item.direccion ? '<i class="fa-solid fa-location-dot popup-icon"></i> ' + item.direccion + '<br/>' : ''}
-              <div class="popup-links">
-                ${item.telefono ? '<i class="fa-solid fa-phone popup-icon phone"></i> ' + item.telefono + '<br/>' : ''}
-                ${item.whatsapp ? '<i class="fa-brands fa-whatsapp popup-icon whatsapp"></i> <a href="https://wa.me/549' + item.whatsapp.replace(/\D/g, '') + '" target="_blank">WhatsApp</a><br/>' : ''}
-                ${item.instagram ? '<i class="fa-brands fa-instagram popup-icon instagram"></i> <a href="' + item.instagram + '" target="_blank">Instagram</a><br/>' : ''}
-                ${item.facebook ? '<i class="fa-brands fa-facebook popup-icon facebook"></i> <a href="' + item.facebook + '" target="_blank">Facebook</a><br/>' : ''}
-                ${item.youtube ? '<i class="fa-brands fa-youtube popup-icon youtube"></i> <a href="' + item.youtube + '" target="_blank">YouTube</a><br/>' : ''}
-              </div>
+              <div class="popup-categoria">${subcategoria1}</div>
+              ${item.direccion ? '<i class="fas fa-map-marker-alt icono"></i>' + item.direccion + '<br/>' : ''}
+              ${item.telefono ? '<i class="fas fa-phone icono"></i>' + item.telefono + '<br/>' : ''}
+              ${item.whatsapp ? '<i class="fab fa-whatsapp icono"></i><a href="https://wa.me/549' + item.whatsapp.replace(/\D/g, '') + '" target="_blank">WhatsApp</a><br/>' : ''}
+              ${item.instagram ? '<i class="fab fa-instagram icono"></i><a href="' + item.instagram + '" target="_blank">Instagram</a><br/>' : ''}
+              ${item.facebook ? '<i class="fab fa-facebook icono"></i><a href="' + item.facebook + '" target="_blank">Facebook</a><br/>' : ''}
               ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
-              ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
+              ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank"><i class="fas fa-map icono"></i>¿Cómo llegar?</a>` : ''}
             `;
 
-            const marker = L.marker([lat, lng]).bindPopup(popupHtml);
+            const marker = L.marker([lat, lng], { icon: iconoCategoria }).bindPopup(popupHtml);
 
             todosLosDatos.push({
-              nombre: item.nombre || '',
-              subcategoria1: item.subcategoria1 || '',
+              nombre: item.nombre,
+              subcategoria1,
               marker
             });
 
@@ -211,8 +223,20 @@
           }
         });
 
-        renderizar(todosLosDatos);
-        document.getElementById("busquedaSubcategoria").addEventListener("input", aplicarFiltros);
+        // Poblar subcategorías
+        const select = document.getElementById("filtroSubcategoria");
+        Object.keys(subcategorias).sort().forEach(subcat => {
+          const option = document.createElement("option");
+          option.value = subcat;
+          option.textContent = subcat;
+          select.appendChild(option);
+        });
+
+        // Mostrar íconos sin lista al cargar
+        renderizar(todosLosDatos, false);
+
+        document.getElementById("busquedaNombre").addEventListener("input", aplicarFiltros);
+        document.getElementById("filtroSubcategoria").addEventListener("change", aplicarFiltros);
       })
       .catch(error => {
         alert("No se pudo cargar el mapa. Intente más tarde.");
