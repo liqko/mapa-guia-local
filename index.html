@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comercios Adheridos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <style>
     body {
       margin: 0;
@@ -75,6 +75,7 @@
   <div id="sidebar">
     <h1>Comercios Adheridos</h1>
     <div class="filtros">
+      <input type="text" id="busquedaNombre" placeholder="Buscar por nombre...">
       <input type="text" id="busquedaSubcategoria" placeholder="Buscar por subcategoría...">
       <button onclick="limpiarFiltros()">Limpiar filtros</button>
     </div>
@@ -117,17 +118,36 @@
 
     function aplicarFiltros() {
       const subcategoriaInput = document.getElementById("busquedaSubcategoria").value.trim().toLowerCase();
+      const nombreInput = document.getElementById("busquedaNombre").value.trim().toLowerCase();
 
       const filtrados = todosLosDatos.filter(item => {
-        const subs = item.subcategoria1?.toLowerCase().split(',').map(s => s.trim()) || [];
-        return subs.some(sub => sub.includes(subcategoriaInput));
-      );
+        const coincideNombre = item.nombre?.toLowerCase().includes(nombreInput);
+        const subcategorias = item.subcategoria1?.toLowerCase().split(',').map(s => s.trim()) || [];
+        const coincideSubcategoria = subcategorias.some(sub => sub.includes(subcategoriaInput));
+        return coincideNombre && coincideSubcategoria;
+      });
+
       renderizar(filtrados);
     }
 
     function limpiarFiltros() {
       document.getElementById("busquedaSubcategoria").value = '';
+      document.getElementById("busquedaNombre").value = '';
       renderizar(todosLosDatos);
+    }
+
+    function crearPopup(item) {
+      return `
+        <strong>${item.nombre}</strong><br/>
+        <div class="popup-categoria">${item.subcategoria1 || ''}</div>
+        ${item.direccion ? `<i class='fas fa-map-marker-alt'></i> ${item.direccion}<br/>` : ''}
+        ${item.telefono ? `<i class='fas fa-phone'></i> ${item.telefono}<br/>` : ''}
+        ${item.whatsapp ? `<i class='fab fa-whatsapp'></i> <a href="https://wa.me/549${item.whatsapp.replace(/\D/g, '')}" target="_blank">WhatsApp</a><br/>` : ''}
+        ${item.instagram ? `<i class='fab fa-instagram'></i> <a href="${item.instagram}" target="_blank">Instagram</a><br/>` : ''}
+        ${item.facebook ? `<i class='fab fa-facebook'></i> <a href="${item.facebook}" target="_blank">Facebook</a><br/>` : ''}
+        ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
+        ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
+      `;
     }
 
     fetch('https://opensheet.elk.sh/170kTZ-ViCPxPli86g-n_XMuMv1S3O0-DbGwNFGYVnjY/ANUNCIANTES')
@@ -137,31 +157,16 @@
           const lat = parseFloat(item.lat?.replace(',', '.'));
           const lng = parseFloat(item.lng?.replace(',', '.'));
           if (!isNaN(lat) && !isNaN(lng)) {
-            function crearPopup(item) {
-               return `
-                 <strong>${item.nombre}</strong><br/>
-                 <div class="popup-categoria">${item.subcategoria1 || ''}</div>
-                 ${item.direccion ? `<i class='fas fa-map-marker-alt'></i> ${item.direccion}<br/>` : ''}
-                 ${item.telefono ? `<i class='fas fa-phone'></i> ${item.telefono}<br/>` : ''}
-                 ${item.whatsapp ? `<i class='fab fa-whatsapp'></i> <a href="https://wa.me/549${item.whatsapp.replace(/\D/g, '')}" target="_blank">WhatsApp</a><br/>` : ''}
-                 ${item.instagram ? `<i class='fab fa-instagram'></i> <a href="${item.instagram}" target="_blank">Instagram</a><br/>` : ''}
-                 ${item.facebook ? `<i class='fab fa-facebook'></i> <a href="${item.facebook}" target="_blank">Facebook</a><br/>` : ''}
-                 ${item.logo ? `<img class="popup-logo" src="${item.logo}" alt="${item.nombre}" />` : ''}
-                 ${item.maps ? `<a class="popup-link" href="${item.maps}" target="_blank">¿Cómo llegar?</a>` : ''}
-               `;
-              }
-
             const marker = L.marker([lat, lng]).bindPopup(crearPopup(item));
-
             const comercioCompleto = { ...item, marker };
             todosLosDatos.push(comercioCompleto);
-            });
             markers.push({ marker });
           }
         });
 
         renderizar(todosLosDatos);
         document.getElementById("busquedaSubcategoria").addEventListener("input", aplicarFiltros);
+        document.getElementById("busquedaNombre").addEventListener("input", aplicarFiltros);
       })
       .catch(error => {
         alert("No se pudo cargar el mapa. Intente más tarde.");
